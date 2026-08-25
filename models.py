@@ -9,7 +9,6 @@ class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     repository_url = db.Column(db.String(200))
-    
     releases = db.relationship('Release', backref='service', lazy=True)
 
     def to_dict(self):
@@ -27,7 +26,6 @@ class Release(db.Model):
     changelog = db.Column(db.Text)
     status = db.Column(db.String(20), default='draft')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
 
     def to_dict(self):
