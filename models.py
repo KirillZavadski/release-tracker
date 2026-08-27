@@ -1,17 +1,21 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from typing import Optional, List
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 db = SQLAlchemy()
 
 class Service(db.Model):
     __tablename__ = 'services'
     
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
-    repository_url = db.Column(db.String(200))
-    releases = db.relationship('Release', backref='service', lazy=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    repository_url: Mapped[Optional[str]] = mapped_column(String(200))
+    
+    releases: Mapped[List['Release']] = relationship('Release', backref='service', lazy=True)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             'id': self.id,
             'name': self.name,
@@ -21,19 +25,20 @@ class Service(db.Model):
 class Release(db.Model):
     __tablename__ = 'releases'
     
-    id = db.Column(db.Integer, primary_key=True)
-    version = db.Column(db.String(50), nullable=False)
-    changelog = db.Column(db.Text)
-    status = db.Column(db.String(20), default='draft')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    version: Mapped[str] = mapped_column(String(50))
+    changelog: Mapped[Optional[str]] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default='draft')
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    
+    service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             'id': self.id,
             'version': self.version,
             'changelog': self.changelog,
             'status': self.status,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
             'service_id': self.service_id
         }

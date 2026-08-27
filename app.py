@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from models import db
+from api import db_api
 
 def create_app():
     app = Flask(__name__)
