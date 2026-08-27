@@ -2,7 +2,7 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from models import db
-from api import db_api
+from api import api_bp
 
 def create_app():
     app = Flask(__name__)
@@ -14,12 +14,14 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
+    app.register_blueprint(api_bp)
+
     @app.route('/')
     def index():
-        return {"message": "Release Tracker API is running!"}
+        return "message"
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(port=3030, debug=True)
