@@ -48,6 +48,12 @@ def get_releases():
     releases = db.session.execute(tmp).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
+@api_bp.route('/services/<int:service_id>/releases', methods=['GET'])
+def get_releases_by_service(service_id):
+    service = db.get_or_404(Service, service_id)
+    releases = [release.to_dict() for release in service.releases]
+    return jsonify(releases), 200
+
 @api_bp.route('/releases', methods=['POST'])
 def create_release():
     data = request.get_json() or {}
