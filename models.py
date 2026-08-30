@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, List
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Text, ForeignKey
@@ -29,7 +29,7 @@ class Release(db.Model):
     version: Mapped[str] = mapped_column(String(50))
     changelog: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default='draft')
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now(UTC))
     
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
 
