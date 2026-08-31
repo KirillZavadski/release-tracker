@@ -2,8 +2,10 @@ import os
 from flask import Flask, render_template, jsonify
 from flask_migrate import Migrate
 from models import db
+
 from api import api_bp
 from errors_handling import errors
+from health.health_check import health_bp
 
 def create_app():
     app = Flask(__name__)
@@ -17,6 +19,7 @@ def create_app():
 
     app.register_blueprint(api_bp)
     app.register_blueprint(errors)
+    app.register_blueprint(health_bp)
 
     @app.errorhandler(404)
     def page_not_found(e):
