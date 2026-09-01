@@ -18,7 +18,7 @@ def test_create_release(client):
     data = release_post.get_json()
     assert data["version"] == "1.0.0"
     assert data["changelog"] == "first stable"
-    assert data["id"] == service_id
+    assert data["service_id"] == service_id
     assert data["status"] == "draft"
 
 def test_create_release_without_service(client):
@@ -62,6 +62,6 @@ def test_get_all_releases(client):
     response = client.get("/api/releases")
     assert response.status_code == 200
     data = response.get_json()
-    assert data[4]["version"] == "2.0.0"
-    assert data[5]["version"] == "2.1.0"
+    assert data[0]["version"] == "2.0.0"
+    assert data[1]["version"] == "2.1.0"
     print("Last release test")      #debug print

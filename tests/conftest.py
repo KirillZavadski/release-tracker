@@ -2,7 +2,7 @@ import pytest
 from app import create_app
 from models import db
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def app():
     app = create_app()
     with app.app_context():

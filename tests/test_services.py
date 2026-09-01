@@ -38,6 +38,23 @@ def test_get_all_services(client):
     response = client.get("/api/services")
     assert response.status_code == 200
     data = response.get_json()
-    assert data[2]["name"] == "ServiceA"
-    assert data[3]["name"] == "ServiceB"
-    print("Last service test")      #debug print
+    assert data[0]["name"] == "ServiceA"
+    assert data[1]["name"] == "ServiceB"
+
+def test_get_service_by_release_id(client):
+    service_post = client.post("/api/services", json={
+        "name": "Service_by_release",
+        "repository_url": "some random URL"
+    })
+    service_id = service_post.get_json()["id"]
+
+    client.post('/api/releases', json={"version": "1.0.0", "service_id": service_id})
+    release_post = client.post('/api/releases', json={"version": "1.1.0", "service_id": service_id})
+    release_id = release_post.get_json()["id"]
+    
+    response = client.get(f"/api/releases/{release_id}/service")
+    
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["id"] == service_id
+    assert data["name"] == "Service_by_release"

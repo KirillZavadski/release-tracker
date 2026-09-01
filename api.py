@@ -14,6 +14,11 @@ def get_services():
     services = db.session.execute(db.select(Service)).scalars().all()
     return jsonify([service.to_dict() for service in services]), 200
 
+@api_bp.route('/releases/<int:release_id>/service', methods=['GET'])
+def get_service_by_release(release_id):
+    release = db.get_or_404(Release, release_id)
+    return jsonify(release.service.to_dict()), 200
+
 @api_bp.route('/services', methods=['POST'])
 def create_service():
     data = request.get_json() or {}
