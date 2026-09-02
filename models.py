@@ -3,8 +3,14 @@ from typing import Optional, List
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from enum import Enum
 
 db = SQLAlchemy()
+
+class Status_variable(Enum):
+    DRAFT = "Draft"
+    TESTING = "Testing"
+    DEPLOYED = "Deployed"
 
 class Service(db.Model):
     __tablename__ = 'services'
@@ -28,7 +34,7 @@ class Release(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     version: Mapped[str] = mapped_column(String(50))
     changelog: Mapped[Optional[str]] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(20), default='draft')
+    status: Mapped[Status_variable] = mapped_column(db.Enum(Status_variable), default=Status_variable.DRAFT)
     created_at: Mapped[datetime] = mapped_column(default=datetime.now(UTC))
     
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
@@ -38,7 +44,7 @@ class Release(db.Model):
             'id': self.id,
             'version': self.version,
             'changelog': self.changelog,
-            'status': self.status,
+            'status': self.status.value if isinstance(self.status, Status_variable) else self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'service_id': self.service_id
         }
