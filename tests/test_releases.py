@@ -19,7 +19,7 @@ def test_create_release(client):
     assert data["version"] == "1.0.0"
     assert data["changelog"] == "first stable"
     assert data["service_id"] == service_id
-    assert data["status"] == "draft"
+    assert data["status"] == "Draft"
 
 def test_create_release_without_service(client):
     release_data = {
@@ -50,9 +50,19 @@ def test_change_status(client):
     release_id = release_post.get_json()["id"]
 
     data = release_post.get_json()
-    patch_response = client.patch(f"/api/releases/{release_id}/status", json = {"status": "testing"})
+    patch_response = client.patch(f"/api/releases/{release_id}/status", json = {"status": "Testing"})
     assert patch_response.status_code == 200
-    assert patch_response.get_json()["status"] == "testing"
+    assert patch_response.get_json()["status"] == "Testing"
+
+# def test_change_status_invalid(client):
+#     service_post = client.post("/api/services", json={"name": "test_service"})
+#     service_id = service_post.get_json()["id"]
+#     release_post = client.post('/api/releases', json={"version": "1.0.0", "service_id": service_id})
+#     release_id = release_post.get_json()["id"]
+
+#     response = client.patch(f"/api/releases/{release_id}/status", json={"status": "invalid_status"})
+#     assert response.status_code == 400
+#     assert "error" in response.get_json()
 
 def test_get_all_releases(client):
     service_post = client.post("/api/services", json = {"name": "fourth name"})
