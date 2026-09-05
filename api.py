@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Service, Release
+from models import db, Service, Release, Status_variable
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -45,12 +45,12 @@ def create_service():
 def get_releases():
     status_filter = request.args.get('status')
     
-    tmp = db.select(Release)
+    release_data = db.select(Release)
     
     if status_filter:
-        tmp = tmp.filter_by(status=status_filter)
+        release_data = release_data.filter_by(status=status_filter)
         
-    releases = db.session.execute(tmp).scalars().all()
+    releases = db.session.execute(release_data).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
 @api_bp.route('/services/<int:service_id>/releases', methods=['GET'])
@@ -67,7 +67,6 @@ def create_release():
         return jsonify({'error': 'Поля service_id и version обязательны'}), 400
         
     service = db.session.get(Service, data['service_id'])
-    #service = Service.query.get(data['service_id'])
     if service is None:
         return jsonify({'error': 'Сервис с таким service_id не найден'}), 404
 
@@ -75,7 +74,7 @@ def create_release():
         service_id=data['service_id'],
         version=data['version'],
         changelog=data.get('changelog'),
-        status=data.get('status', 'draft')
+        status=data.get(Status_variable.DRAFT) 
     )
     
     db.session.add(new_release)
@@ -89,15 +88,15 @@ def update_release_status(release_id):
     data = request.get_json() or {}
     
     new_status = data.get('status')
-    allowed_statuses = ['draft', 'testing', 'deployed']
+    valid_statuses = [status.value for status in Status_variable]
     
-    if new_status not in allowed_statuses:
-        return jsonify({'error': f'Недопустимый статус. Разрешены: {allowed_statuses}'}), 400
+    if new_status not in valid_statuses:
+        return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
 
     if release.status == 'draft' and new_status == 'deployed':
         return jsonify({'error': 'Нельзя перевести релиз из draft прямо в deployed, сначала пройдите testing'}), 400
 
-    release.status = new_status
+    release.status = Status_variable(new_status)
     db.session.commit()
     
     return jsonify(release.to_dict()), 200
