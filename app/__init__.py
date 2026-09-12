@@ -1,11 +1,11 @@
 import os
 from flask import Flask, render_template, jsonify
 from flask_migrate import Migrate
-from models import db
 
-from api import api_bp
-from errors_handling import errors
-from health.health_check import health_bp
+from app.models.models import db
+from app.api.api import api_bp
+from app.error_handlers.errors_handling import errors
+from app.health.health_check import health_bp
 
 def create_app():
     app = Flask(__name__)
@@ -34,4 +34,3 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     app.run(port=3030, debug=True)
-
