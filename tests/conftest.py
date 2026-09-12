@@ -1,6 +1,6 @@
 import pytest
 from app import create_app
-from models import db
+from app.models.models import db
 
 @pytest.fixture(scope="function", autouse=True)
 def app():
