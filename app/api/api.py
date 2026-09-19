@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.models.models import db, Service, Release, Status_variable
+from app.models.models import db, Service, Release
+from app.models.enums import Status_variable as statuses
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -74,7 +75,7 @@ def create_release():
         service_id=data['service_id'],
         version=data['version'],
         changelog=data.get('changelog'),
-        status=data.get(Status_variable.DRAFT) 
+        status=data.get(statuses.DRAFT) 
     )
     
     db.session.add(new_release)
@@ -88,7 +89,7 @@ def update_release_status(release_id):
     data = request.get_json() or {}
     
     new_status = data.get('status')
-    valid_statuses = [status.value for status in Status_variable]
+    valid_statuses = [status.value for status in statuses]
     
     if new_status not in valid_statuses:
         return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
@@ -96,7 +97,7 @@ def update_release_status(release_id):
     if release.status == 'draft' and new_status == 'deployed':
         return jsonify({'error': 'Нельзя перевести релиз из draft прямо в deployed, сначала пройдите testing'}), 400
 
-    release.status = Status_variable(new_status)
+    release.status = statuses(new_status)
     db.session.commit()
     
     return jsonify(release.to_dict()), 200

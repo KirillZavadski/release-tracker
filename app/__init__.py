@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, jsonify
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 
 from app.models.models import db
@@ -7,12 +7,14 @@ from app.api.api import api_bp
 from app.error_handlers.errors_handling import errors
 from app.health.health_check import health_bp
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 def create_app():
     app = Flask(__name__)
 
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    project_root = os.path.dirname(basedir)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(project_root, 'app.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
@@ -22,9 +24,9 @@ def create_app():
     app.register_blueprint(errors)
     app.register_blueprint(health_bp)
 
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return jsonify(error=str(e)), 404
+    # @app.errorhandler(404)
+    # def page_not_found(e):
+    #     return jsonify(error=str(e)), 404
 
     @app.route('/')
     def index():
