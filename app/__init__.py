@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_migrate import Migrate
 
 from app.models.models import db
-from app.api.api import api_bp
+from app.procedures.api import api_bp
 from app.error_handlers.errors_handling import errors
 from app.health.health_check import health_bp
 
