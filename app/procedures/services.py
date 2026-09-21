@@ -3,13 +3,11 @@ from app.models.models import db, Service, Release
 from app.procedures.api import api_bp
 
 
-api_bp = Blueprint('api', __name__, url_prefix='/api')
+# api_bp = Blueprint('api', __name__, url_prefix='/api')
 
-@api_bp.route('/')
-def api_index():
-    return "Fuck. This is start page of api"
-
-#routes for servises
+# @api_bp.route('/')
+# def api_index():
+#     return "Fuck. This is start page of api"
 
 @api_bp.route('/services', methods=['GET'])
 def get_services():

@@ -6,7 +6,7 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/')
 def api_index():
-    return "Fuck. This is start page of api"
+    return "Fuck. This is start page of api\n"
 
 from app.procedures import services
 from app.procedures import releases
