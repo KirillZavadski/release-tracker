@@ -1,8 +1,8 @@
-"""Init postgres
+"""create services and releases
 
-Revision ID: 45b0d7efabb9
-Revises: 
-Create Date: 2026-09-19 20:09:05.800514
+Revision ID: 1a52e4811915
+Revises: 3f61696613fe
+Create Date: 2026-09-21 18:05:13.432975
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '45b0d7efabb9'
-down_revision = None
+revision = '1a52e4811915'
+down_revision = '3f61696613fe'
 branch_labels = None
 depends_on = None
 
