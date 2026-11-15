@@ -22,7 +22,7 @@ def get_releases():
     releases = db.session.execute(release_data).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
-@api_bp.route('/services/<int:service_id>/releases', methods=['GET'])
+@api_bp.route('/services/<int:service_id>/releases', methods=['GET']) # Get all releases by service ID
 def get_releases_by_service(service_id):
     service = db.get_or_404(Service, service_id)
     releases = [release.to_dict() for release in service.releases]
@@ -69,3 +69,14 @@ def update_release_status(release_id):
     db.session.commit()
     
     return jsonify(release.to_dict()), 200
+
+@api_bp.route('/releases/<int:release_id>', methods=['DELETE'])
+def delete_release(release_id):
+    release = db.get_or_404(Release, release_id)
+    
+    db.session.delete(release)
+    db.session.commit()
+    
+    return jsonify({
+        'message': f'Релиз с ID {release_id} успешно удален'
+    }), 200
