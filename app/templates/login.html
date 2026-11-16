@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Tracker — Вход</title>
+    <style>
+        :root {
+            --bg-color: #f7f6f2;        /* Пастельный кремовый фон */
+            --card-bg: #ffffff;         /* Белый фон карточки */
+            --text-color: #4a4a4a;      /* Мягкий темно-серый цвет текста */
+            --accent-color: #8da47e;    /* Пастельный оливково-зеленый */
+            --accent-hover: #79906b;    /* Цвет кнопки при наведении */
+            --border-color: #e3e0db;    /* Цвет границ полей */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 380px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Заголовок сверху */
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #3d3d3d;
+            letter-spacing: -0.5px;
+        }
+
+        /* Прямоугольник с закругленными углами (карточка) */
+        .card {
+            background-color: var(--card-bg);
+            width: 100%;
+            padding: 30px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Поля ввода (Login, Pass) */
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #faf9f6;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-color);
+            background-color: #fff;
+        }
+
+        /* Чекбокс Remember me */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+            margin-top: 4px;
+        }
+
+        .checkbox-label input {
+            accent-color: var(--accent-color);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Кнопка Start */
+        .start-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 6px;
+        }
+
+        .start-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Вывод ошибок */
+        .error-msg {
+            color: #d9534f;
+            font-size: 0.85rem;
+            text-align: center;
+            display: none;
+        }
+
+        /* Блок с текстом и ссылкой на регистрацию под карточкой */
+        .register-container {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .register-container a {
+            color: var(--accent-hover);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-container a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Название сверху -->
+        <h1>Release Tracker</h1>
+
+        <!-- Прямоугольник с формами -->
+        <div class="card">
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="text" id="username" placeholder="Login" required autocomplete="username">
+                </div>
+                
+                <div class="input-group" style="margin-top: 14px;">
+                    <input type="password" id="password" placeholder="Pass" required autocomplete="current-password">
+                </div>
+                
+                <div style="margin-top: 12px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe"> Remember me
+                    </label>
+                </div>
+
+                <div id="errorMsg" class="error-msg"></div>
+
+                <button type="submit" class="start-btn" style="margin-top: 16px;">Start</button>
+            </form>
+        </div>
+
+        <!-- Ссылка на регистрацию снизу -->
+        <div class="register-container">
+            Don't have one?<br>
+            <a href="register.html">Register</a>
+        </div>
+    </div>
+
+    <script>
+        // Обработка отправки формы входа
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            errorMsg.style.display = 'none';
+
+            try {
+                // Запрос к вашему бэкенду Flask (поменяйте путь, если на бэкенде он другой)
+                const response = await fetch('http://localhost:3030/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Сохраняем токен в localStorage
+                    localStorage.setItem('token', data.token || 'true');
+                    // Перенаправляем на главную страницу
+                    window.location.href = 'main_page.html';
+                } else {
+                    errorMsg.textContent = data.error || 'Неверный логин или пароль';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Ошибка подключения:', err);
+                errorMsg.textContent = 'Не удалось связаться с сервером бэкенда';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

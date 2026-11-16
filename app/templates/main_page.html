@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Tracker Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f7f6f2;        /* Pastel cream background */
+            --card-bg: #ffffff;         /* White card background */
+            --text-color: #4a4a4a;      /* Soft dark-grey text */
+            --accent-color: #8da47e;    /* Pastel olive-green */
+            --accent-hover: #79906b;    /* Hover state for accent */
+            --border-color: #e3e0db;    /* Border color */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .main-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            box-sizing: border-box;
+        }
+
+        /* Top navigation panel */
+        .top-nav {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        /* Button + New (on the left) */
+        .new-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .new-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Title in the center */
+        .app-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #3d3d3d;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* Profile icon (on the right) */
+        .profile-link {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: background-color 0.2s;
+        }
+
+        .profile-link:hover {
+            background-color: #eeebe3;
+        }
+
+        .profile-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Services grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            flex: 1;
+            align-content: start;
+        }
+
+        /* Service card */
+        .service-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .service-info strong {
+            font-size: 1.1rem;
+            color: #3d3d3d;
+            display: block;
+            margin-bottom: 6px;
+            word-break: break-all;
+        }
+
+        .service-info a {
+            font-size: 0.85rem;
+            color: var(--accent-hover);
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .service-info a:hover {
+            text-decoration: underline;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            border-top: 1px solid #f0eee9;
+            padding-top: 8px;
+        }
+
+        .change-btn {
+            background: none;
+            border: none;
+            color: var(--accent-hover);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .change-btn:hover {
+            background-color: #f2f5f0;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background-color: #fdf2f2;
+        }
+
+        /* Modal window */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #3d3d3d;
+            margin-bottom: 16px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background-color: #faf9f6;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .modal input:focus {
+            border-color: var(--accent-color);
+            background-color: #fff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background-color: #eeebe3;
+            color: var(--text-color);
+        }
+
+        .btn-cancel:hover {
+            background-color: #e3e0db;
+        }
+
+        .btn-submit {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="top-nav">
+            <button class="new-btn" onclick="openCreateModal()">+ New</button>
+
+            <h1 class="app-title">Release Tracker</h1>
+
+            <a href="/profile" class="profile-link" title="Profile">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </a>
+        </div>
+
+        <div class="services-grid" id="servicesList">
+            <div class="empty-state">Loading services...</div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">New Service</h3>
+            <input type="text" id="serviceName" placeholder="Service name (e.g. auth)">
+            <input type="text" id="serviceUrl" placeholder="Repository URL">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-submit" id="submitBtn" onclick="saveService()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3030/api';
+        let editingServiceId = null;
+
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_URL}/services`);
+                const services = await response.json();
+                
+                const listElement = document.getElementById('servicesList');
+                listElement.innerHTML = '';
+
+                if (!services || services.length === 0) {
+                    listElement.innerHTML = '<div class="empty-state">No services yet. Click «+ New» to add one.</div>';
+                    return;
+                }
+
+                services.forEach(service => {
+                    const safeName = service.name.replace(/'/g, "\\'");
+                    const safeUrl = service.repository_url.replace(/'/g, "\\'");
+
+                    listElement.innerHTML += `
+                        <div class="service-card">
+                            <div class="service-info">
+                                <strong>${service.name}</strong>
+                                <a href="${service.repository_url}" target="_blank">${service.repository_url}</a>
+                            </div>
+                            <div class="card-footer">
+                                <button class="change-btn" onclick="openEditModal(${service.id}, '${safeName}', '${safeUrl}')">Change</button>
+                                <button class="delete-btn" onclick="deleteService(${service.id})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading services:', error);
+                document.getElementById('servicesList').innerHTML = '<div class="empty-state" style="color: #d9534f;">Backend connection error</div>';
+            }
+        }
+
+        function openCreateModal() {
+            editingServiceId = null;
+            document.getElementById('modalTitle').innerText = 'New Service';
+            document.getElementById('serviceName').value = '';
+            document.getElementById('serviceUrl').value = '';
+            document.getElementById('submitBtn').innerText = 'Create';
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function openEditModal(id, name, url) {
+            editingServiceId = id;
+            document.getElementById('modalTitle').innerText = 'Edit Service';
+            document.getElementById('serviceName').value = name;
+            document.getElementById('serviceUrl').value = url;
+            document.getElementById('submitBtn').innerText = 'Save';
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('serviceName').value = '';
+            document.getElementById('serviceUrl').value = '';
+            editingServiceId = null;
+        }
+
+        async function saveService() {
+            const nameInput = document.getElementById('serviceName');
+            const urlInput = document.getElementById('serviceUrl');
+
+            const name = nameInput.value.trim();
+            const repository_url = urlInput.value.trim();
+
+            if (!name || !repository_url) {
+                alert('Please fill in all fields!');
+                return;
+            }
+
+            const url = editingServiceId ? `${API_URL}/services/${editingServiceId}` : `${API_URL}/services`;
+            const method = editingServiceId ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, repository_url })
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadServices();
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + (err.error || 'Failed to save service'));
+                }
+            } catch (error) {
+                console.error('Error saving service:', error);
+            }
+        }
+
+        async function deleteService(id) {
+            if (!confirm('Delete service and all its releases?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/services/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadServices();
+                } else {
+                    alert('Failed to delete service');
+                }
+            } catch (error) {
+                console.error('Error deleting service:', error);
+            }
+        }
+
+        loadServices();
+    </script>
+</body>
+</html>
