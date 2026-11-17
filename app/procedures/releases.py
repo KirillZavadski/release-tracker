@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app.models.models import db, Service, Release
 from app.models.enums import Status_variable as statuses
 from app.procedures.api import api_bp
+from flask_login import login_required, current_user
+import traceback
 
 
 # api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -22,11 +24,27 @@ def get_releases():
     releases = db.session.execute(release_data).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
-@api_bp.route('/services/<int:service_id>/releases', methods=['GET']) # Get all releases by service ID
+@api_bp.route('/services/<int:service_id>/releases', methods=['GET']) 
+@login_required
 def get_releases_by_service(service_id):
-    service = db.get_or_404(Service, service_id)
-    releases = [release.to_dict() for release in service.releases]
-    return jsonify(releases), 200
+    try:
+        service = db.session.execute(
+            db.select(Service).filter_by(id=service_id, user_id=current_user.id)
+        ).scalar_one_or_none()
+        
+        if not service:
+            return jsonify({'error': 'Сервис не найден'}), 404
+            
+        releases = [release.to_dict() for release in service.releases]
+        return jsonify(releases), 200
+        
+    except Exception as e:
+        # Логируем полный стектрейс через встроенный логгер Flask
+        current_app.logger.error(traceback.format_exc())
+        
+        # Возвращаем точный текст ошибки в JSON, чтобы увидеть его в браузере
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        return jsonify({'error': error_msg}), 500
 
 @api_bp.route('/releases', methods=['POST'])
 def create_release():
@@ -36,10 +54,7 @@ def create_release():
         return jsonify({'error': 'Поля service_id и version обязательны'}), 400
         
     valid_statuses = [status.value for status in statuses]
-    
-    if data.get('status') not in valid_statuses:
-        return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
-    
+
     service = db.session.get(Service, data['service_id'])
     if service is None:
         return jsonify({'error': 'Сервис с таким service_id не найден'}), 404
@@ -48,7 +63,7 @@ def create_release():
         service_id=data['service_id'],
         version=data['version'],
         changelog=data.get('changelog'),
-        status=data.get('status') 
+        status=data.get('status').upper()
     )
     
     db.session.add(new_release)
@@ -62,15 +77,21 @@ def update_release_status(release_id):
     data = request.get_json() or {}
     
     new_status = data.get('status')
-    valid_statuses = [status.value for status in statuses]
+    if not new_status:
+        return jsonify({'error': 'Статус не указан'}), 400
+        
+    new_status_upper = str(new_status).upper()
     
-    if new_status not in valid_statuses:
+    valid_statuses = ['DRAFT', 'TESTING', 'DEPLOYED']
+
+    if new_status_upper not in valid_statuses:
         return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
 
-    if release.status == 'draft' and new_status == 'deployed':
+    current_status = str(release.status).upper()
+    if 'DRAFT' in current_status and new_status_upper == 'DEPLOYED':
         return jsonify({'error': 'Нельзя перевести релиз из draft прямо в deployed, сначала пройдите testing'}), 400
 
-    release.status = statuses(new_status)
+    release.status = new_status_upper
     db.session.commit()
     
     return jsonify(release.to_dict()), 200

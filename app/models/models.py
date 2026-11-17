@@ -14,6 +14,8 @@ class Service(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     repository_url: Mapped[Optional[str]] = mapped_column(String(200))
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     releases: Mapped[List['Release']] = relationship('Release', backref='service', lazy=True)
 

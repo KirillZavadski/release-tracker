@@ -6,8 +6,10 @@ from app import db
 pages_bp = Blueprint('pages', __name__)
 
 @pages_bp.route('/')
+@login_required
 def main_page():
-    return render_template('main_page.html', user=current_user)
+    user_services = current_user.services 
+    return render_template('main_page.html', user=current_user, services=user_services)
 
 @pages_bp.route('/login', methods=['GET', 'POST'])
 def login_page():
