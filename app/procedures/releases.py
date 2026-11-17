@@ -35,6 +35,11 @@ def create_release():
     if 'service_id' not in data or 'version' not in data:
         return jsonify({'error': 'Поля service_id и version обязательны'}), 400
         
+    valid_statuses = [status.value for status in statuses]
+    
+    if data.get('status') not in valid_statuses:
+        return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
+    
     service = db.session.get(Service, data['service_id'])
     if service is None:
         return jsonify({'error': 'Сервис с таким service_id не найден'}), 404
@@ -43,7 +48,7 @@ def create_release():
         service_id=data['service_id'],
         version=data['version'],
         changelog=data.get('changelog'),
-        status=data.get(statuses.DRAFT) 
+        status=data.get('status') 
     )
     
     db.session.add(new_release)

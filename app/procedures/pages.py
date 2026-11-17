@@ -31,7 +31,7 @@ def register_page():
         password = request.form.get('password')
 
         if User.query.filter_by(username=username).first():
-            flash('Пользователь с таким именем уже существует', 'error')
+            flash('User with this login already exists', 'error')
             return render_template('register.html')
 
         new_user = User(username=username)

@@ -297,7 +297,7 @@
         <div class="modal">
             <h3>New Release</h3>
             <input type="text" id="releaseVersion" placeholder="Version (e.g. v1.0.0)">
-            <input type="text" id="releaseStatus" placeholder="Status (e.g. Success, Pending)">
+            <input type="text" id="releaseStatus" placeholder="Status">
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeCreateModal()">Cancel</button>
                 <button class="btn-submit" onclick="createRelease()">Create</button>
@@ -390,11 +390,17 @@
                 return;
             }
 
+            const data = {
+                service_id: SERVICE_ID,
+                version,
+                status
+            }
+
             try {
-                const response = await fetch(`${API_URL}/services/${SERVICE_ID}/releases`, {
+                const response = await fetch(`${API_URL}/releases`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ version, status })
+                    body: JSON.stringify(data)
                 });
 
                 if (response.ok) {
@@ -414,8 +420,8 @@
             if (!status || !currentEditingReleaseId) return;
 
             try {
-                const response = await fetch(`${API_URL}/releases/${currentEditingReleaseId}`, {
-                    method: 'PUT',
+                const response = await fetch(`${API_URL}/releases/${currentEditingReleaseId}/status`, {
+                    method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status })
                 });
