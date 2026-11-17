@@ -127,9 +127,46 @@
         }
 
         .release-info p {
-            margin: 0;
+            margin: 4px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .release-time {
+            font-size: 0.8rem !important;
+            color: #999 !important;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background-color: #f0f4ed;
+            color: var(--accent-hover);
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            cursor: pointer;
             font-size: 0.85rem;
-            color: #777;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .status-btn:hover {
+            background-color: #f5f3ef;
+            border-color: #d1cfc7;
         }
 
         .delete-btn {
@@ -245,8 +282,8 @@
         <!-- Top navigation panel -->
         <div class="top-nav">
             <a href="/" class="back-btn">← Back</a>
-            <h1 class="app-title" id="pageTitle">Releases</h1>
-            <button class="new-btn" onclick="openModal()">+ New Release</button>
+            <h1 class="app-title">Releases</h1>
+            <button class="new-btn" onclick="openCreateModal()">+ New Release</button>
         </div>
 
         <!-- Releases list -->
@@ -255,22 +292,35 @@
         </div>
     </div>
 
-    <!-- Modal window for creating a release -->
-    <div class="modal-overlay" id="modalOverlay">
+    <!-- Create Release Modal -->
+    <div class="modal-overlay" id="createModalOverlay">
         <div class="modal">
             <h3>New Release</h3>
             <input type="text" id="releaseVersion" placeholder="Version (e.g. v1.0.0)">
-            <input type="text" id="releaseDescription" placeholder="Description / Tag">
+            <input type="text" id="releaseStatus" placeholder="Status (e.g. Success, Pending)">
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-cancel" onclick="closeCreateModal()">Cancel</button>
                 <button class="btn-submit" onclick="createRelease()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Status Modal -->
+    <div class="modal-overlay" id="statusModalOverlay">
+        <div class="modal">
+            <h3>Change Status</h3>
+            <input type="text" id="newStatusInput" placeholder="New status">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeStatusModal()">Cancel</button>
+                <button class="btn-submit" onclick="saveNewStatus()">Save</button>
             </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'http://localhost:3030/api';
-        const SERVICE_ID = { service_id }; // Injected from Flask route
+        const SERVICE_ID = {{ service_id }};
+        let currentEditingReleaseId = null;
 
         async function loadReleases() {
             try {
@@ -286,13 +336,20 @@
                 }
 
                 releases.forEach(release => {
+                    const safeStatus = (release.status || 'Pending').replace(/'/g, "\\'");
+                    const formattedDate = release.created_at ? new Date(release.created_at).toLocaleString() : 'N/A';
+
                     listElement.innerHTML += `
                         <div class="release-card">
                             <div class="release-info">
-                                <h4>${release.version || release.tag || 'Release #' + release.id}</h4>
-                                <p>${release.description || release.repository_url || 'No description'}</p>
+                                <h4>Version: ${release.version || 'Unknown'}</h4>
+                                <p>Status: <span class="status-badge">${release.status || 'Pending'}</span></p>
+                                <p class="release-time">Created: ${formattedDate}</p>
                             </div>
-                            <button class="delete-btn" onclick="deleteRelease(${release.id})">Delete</button>
+                            <div class="card-footer">
+                                <button class="status-btn" onclick="openStatusModal(${release.id}, '${safeStatus}')">Change Status</button>
+                                <button class="delete-btn" onclick="deleteRelease(${release.id})">Delete</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -302,22 +359,31 @@
             }
         }
 
-        function openModal() {
-            document.getElementById('modalOverlay').style.display = 'flex';
+        function openCreateModal() {
+            document.getElementById('createModalOverlay').style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('modalOverlay').style.display = 'none';
+        function closeCreateModal() {
+            document.getElementById('createModalOverlay').style.display = 'none';
             document.getElementById('releaseVersion').value = '';
-            document.getElementById('releaseDescription').value = '';
+            document.getElementById('releaseStatus').value = '';
+        }
+
+        function openStatusModal(releaseId, currentStatus) {
+            currentEditingReleaseId = releaseId;
+            document.getElementById('newStatusInput').value = currentStatus;
+            document.getElementById('statusModalOverlay').style.display = 'flex';
+        }
+
+        function closeStatusModal() {
+            document.getElementById('statusModalOverlay').style.display = 'none';
+            currentEditingReleaseId = null;
+            document.getElementById('newStatusInput').value = '';
         }
 
         async function createRelease() {
-            const versionInput = document.getElementById('releaseVersion');
-            const descInput = document.getElementById('releaseDescription');
-
-            const version = versionInput.value.trim();
-            const description = descInput.value.trim();
+            const version = document.getElementById('releaseVersion').value.trim();
+            const status = document.getElementById('releaseStatus').value.trim() || 'Pending';
 
             if (!version) {
                 alert('Please enter a version!');
@@ -328,11 +394,11 @@
                 const response = await fetch(`${API_URL}/services/${SERVICE_ID}/releases`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ version, description })
+                    body: JSON.stringify({ version, status })
                 });
 
                 if (response.ok) {
-                    closeModal();
+                    closeCreateModal();
                     loadReleases();
                 } else {
                     const err = await response.json();
@@ -340,6 +406,29 @@
                 }
             } catch (error) {
                 console.error('Error creating release:', error);
+            }
+        }
+
+        async function saveNewStatus() {
+            const status = document.getElementById('newStatusInput').value.trim();
+            if (!status || !currentEditingReleaseId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/releases/${currentEditingReleaseId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    closeStatusModal();
+                    loadReleases();
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + (err.error || 'Failed to update status'));
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
             }
         }
 

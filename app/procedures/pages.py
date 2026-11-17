@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask_login import login_user, logout_user, login_required, current_user
+from app.models.user import User
+from app import db
 
 pages_bp = Blueprint('pages', __name__)
 
@@ -7,12 +9,39 @@ pages_bp = Blueprint('pages', __name__)
 def main_page():
     return render_template('main_page.html', user=current_user)
 
-@pages_bp.route('/login')
+@pages_bp.route('/login', methods=['GET', 'POST'])
 def login_page():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('pages.main_page'))
+        
+        flash('Wrong data', 'error')
+        
     return render_template('login.html')
 
-@pages_bp.route('/register')
+@pages_bp.route('/register', methods=['GET', 'POST'])
 def register_page():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if User.query.filter_by(username=username).first():
+            flash('Пользователь с таким именем уже существует', 'error')
+            return render_template('register.html')
+
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        login_user(new_user)
+        return redirect(url_for('pages.main_page'))
+
     return render_template('register.html')
 
 @pages_bp.route('/services/<int:service_id>/releases')

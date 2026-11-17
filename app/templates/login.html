@@ -6,12 +6,12 @@
     <title>Release Tracker — Вход</title>
     <style>
         :root {
-            --bg-color: #f7f6f2;        /* Пастельный кремовый фон */
-            --card-bg: #ffffff;         /* Белый фон карточки */
-            --text-color: #4a4a4a;      /* Мягкий темно-серый цвет текста */
-            --accent-color: #8da47e;    /* Пастельный оливково-зеленый */
-            --accent-hover: #79906b;    /* Цвет кнопки при наведении */
-            --border-color: #e3e0db;    /* Цвет границ полей */
+            --bg-color: #f7f6f2;
+            --card-bg: #ffffff;
+            --text-color: #4a4a4a;
+            --accent-color: #8da47e;
+            --accent-hover: #79906b;
+            --border-color: #e3e0db;
         }
 
         body {
@@ -37,7 +37,6 @@
             box-sizing: border-box;
         }
 
-        /* Заголовок сверху */
         h1 {
             font-size: 1.8rem;
             font-weight: 600;
@@ -46,7 +45,7 @@
             letter-spacing: -0.5px;
         }
 
-        /* Прямоугольник с закругленными углами (карточка) */
+        /* Карточка с закругленными углами */
         .card {
             background-color: var(--card-bg);
             width: 100%;
@@ -60,7 +59,7 @@
             gap: 16px;
         }
 
-        /* Поля ввода (Login, Pass) */
+        /* Поля ввода */
         .input-group input {
             width: 100%;
             padding: 12px 16px;
@@ -97,7 +96,7 @@
             cursor: pointer;
         }
 
-        /* Кнопка Start */
+        /* Кнопка входа */
         .start-btn {
             width: 100%;
             padding: 12px;
@@ -116,15 +115,18 @@
             background-color: var(--accent-hover);
         }
 
-        /* Вывод ошибок */
+        /* Блок с сообщением об ошибке / flash */
         .error-msg {
             color: #d9534f;
             font-size: 0.85rem;
             text-align: center;
-            display: none;
+            background-color: #fdf2f2;
+            border: 1px solid #f5c6cb;
+            padding: 8px 12px;
+            border-radius: 6px;
         }
 
-        /* Блок с текстом и ссылкой на регистрацию под карточкой */
+        /* Ссылка на регистрацию под карточкой */
         .register-container {
             margin-top: 24px;
             text-align: center;
@@ -147,75 +149,39 @@
 <body>
 
     <div class="container">
-        <!-- Название сверху -->
         <h1>Release Tracker</h1>
 
-        <!-- Прямоугольник с формами -->
         <div class="card">
-            <form id="loginForm">
+            <form action="/login" method="POST">
                 <div class="input-group">
-                    <input type="text" id="username" placeholder="Login" required autocomplete="username">
+                    <input type="text" name="username" placeholder="Login" required autocomplete="username">
                 </div>
                 
                 <div class="input-group" style="margin-top: 14px;">
-                    <input type="password" id="password" placeholder="Pass" required autocomplete="current-password">
+                    <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
                 </div>
                 
                 <div style="margin-top: 12px;">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="rememberMe"> Remember me
+                        <input type="checkbox" name="remember"> Remember me
                     </label>
                 </div>
 
-                <div id="errorMsg" class="error-msg"></div>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error-msg" style="margin-top: 14px;">{{ messages[0] }}</div>
+                    {% endif %}
+                {% endwith %}
 
-                <button type="submit" class="start-btn" style="margin-top: 16px;">Start</button>
+                <button type="submit" class="start-btn" style="margin-top: 16px;">Log In</button>
             </form>
         </div>
 
-        <!-- Ссылка на регистрацию снизу -->
         <div class="register-container">
-            Don't have one?<br>
-            <a href="register.html">Register</a>
+            Don't have an account?<br>
+            <a href="/register">Register</a>
         </div>
     </div>
 
-    <script>
-        // Обработка отправки формы входа
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const errorMsg = document.getElementById('errorMsg');
-
-            errorMsg.style.display = 'none';
-
-            try {
-                // Запрос к вашему бэкенду Flask (поменяйте путь, если на бэкенде он другой)
-                const response = await fetch('http://localhost:3030/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Сохраняем токен в localStorage
-                    localStorage.setItem('token', data.token || 'true');
-                    // Перенаправляем на главную страницу
-                    window.location.href = 'main_page.html';
-                } else {
-                    errorMsg.textContent = data.error || 'Неверный логин или пароль';
-                    errorMsg.style.display = 'block';
-                }
-            } catch (err) {
-                console.error('Ошибка подключения:', err);
-                errorMsg.textContent = 'Не удалось связаться с сервером бэкенда';
-                errorMsg.style.display = 'block';
-            }
-        });
-    </script>
 </body>
 </html>

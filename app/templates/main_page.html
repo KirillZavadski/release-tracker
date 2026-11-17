@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Release Tracker Dashboard</title>
+    <title>Release Tracker — Dashboard</title>
     <style>
         :root {
             --bg-color: #f7f6f2;        /* Pastel cream background */
@@ -121,6 +121,7 @@
             flex-direction: column;
             justify-content: space-between;
             min-height: 120px;
+            cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
@@ -281,11 +282,15 @@
 <body>
 
     <div class="main-container">
+        <!-- Top navigation panel -->
         <div class="top-nav">
+            <!-- Left: + New button -->
             <button class="new-btn" onclick="openCreateModal()">+ New</button>
 
+            <!-- Center: App title -->
             <h1 class="app-title">Release Tracker</h1>
 
+            <!-- Right: Profile icon -->
             <a href="/profile" class="profile-link" title="Profile">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -293,11 +298,13 @@
             </a>
         </div>
 
+        <!-- Services grid -->
         <div class="services-grid" id="servicesList">
             <div class="empty-state">Loading services...</div>
         </div>
     </div>
 
+    <!-- Modal window for creating / editing service -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">New Service</h3>
@@ -332,12 +339,12 @@
                     const safeUrl = service.repository_url.replace(/'/g, "\\'");
 
                     listElement.innerHTML += `
-                        <div class="service-card">
+                        <div class="service-card" onclick="goToReleases(${service.id})">
                             <div class="service-info">
                                 <strong>${service.name}</strong>
-                                <a href="${service.repository_url}" target="_blank">${service.repository_url}</a>
+                                <a href="${service.repository_url}" target="_blank" onclick="event.stopPropagation()">${service.repository_url}</a>
                             </div>
-                            <div class="card-footer">
+                            <div class="card-footer" onclick="event.stopPropagation()">
                                 <button class="change-btn" onclick="openEditModal(${service.id}, '${safeName}', '${safeUrl}')">Change</button>
                                 <button class="delete-btn" onclick="deleteService(${service.id})">Delete</button>
                             </div>
@@ -348,6 +355,10 @@
                 console.error('Error loading services:', error);
                 document.getElementById('servicesList').innerHTML = '<div class="empty-state" style="color: #d9534f;">Backend connection error</div>';
             }
+        }
+
+        function goToReleases(serviceId) {
+            window.location.href = `/services/${serviceId}/releases`;
         }
 
         function openCreateModal() {
@@ -427,6 +438,7 @@
             }
         }
 
+        // Load services when opening the page
         loadServices();
     </script>
 </body>
