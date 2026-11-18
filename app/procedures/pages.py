@@ -55,3 +55,9 @@ def releases_page(service_id):
 @login_required
 def profile_page():
     return render_template('profile.html', user=current_user)
+
+@pages_bp.route('/logout', methods=['POST', 'GET'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('pages.login_page'))

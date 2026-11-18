@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Tracker — Profile</title>
+    <style>
+        :root {
+            --bg-color: #f7f6f2;        /* Pastel cream background */
+            --card-bg: #ffffff;         /* White card background */
+            --text-color: #4a4a4a;      /* Soft dark-grey text */
+            --accent-color: #8da47e;    /* Pastel olive-green */
+            --accent-hover: #79906b;    /* Hover state for accent */
+            --border-color: #e3e0db;    /* Border color */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .main-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            box-sizing: border-box;
+        }
+
+        /* Top navigation panel */
+        .top-nav {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        /* Back button (on the left) */
+        .back-btn {
+            background-color: #eeebe3;
+            color: var(--text-color);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: #e3e0db;
+        }
+
+        /* Title in the center */
+        .app-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #3d3d3d;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        /* Empty placeholder on the right for balance */
+        .nav-right-placeholder {
+            width: 76px; /* Ширина примерно балансирует кнопку "Назад" слева */
+        }
+
+        /* Profile card container */
+        .profile-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            max-width: 420px;
+            width: 100%;
+            margin: 40px auto;
+            box-sizing: border-box;
+        }
+
+        .profile-row {
+            margin-bottom: 20px;
+        }
+
+        .profile-row label {
+            font-size: 0.85rem;
+            color: #888;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-row .value {
+            font-size: 1.1rem;
+            color: #3d3d3d;
+            font-weight: 500;
+        }
+
+        /* Badges for status */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background-color: #fdf2f2;
+            color: #d9534f;
+            border: 1px solid #f9d6d5;
+        }
+
+        .badge-user {
+            background-color: #f2f5f0;
+            color: var(--accent-hover);
+            border: 1px solid #dbe5d5;
+        }
+
+        /* Logout button */
+        .logout-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .logout-btn:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Top navigation panel -->
+        <div class="top-nav">
+            <!-- Left: Back button -->
+            <a href="/" class="back-btn">← Back</a>
+
+            <!-- Center: App title -->
+            <h1 class="app-title">Profile</h1>
+
+            <!-- Right: Balanced empty space -->
+            <div class="nav-right-placeholder"></div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-row">
+                <label>Username</label>
+                <div class="value">{{ user.username }}</div>
+            </div>
+
+            <div class="profile-row" style="margin-bottom: 30px;">
+                <label>Role</label>
+                <div class="value">
+                    {% if user.is_admin %}
+                        <span class="badge badge-admin">Administrator</span>
+                    {% else %}
+                        <span class="badge badge-user">Standard User</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Logout form -->
+            <form action="{{ url_for('pages.logout') }}" method="POST">
+                <button type="submit" class="logout-btn">Log out</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
