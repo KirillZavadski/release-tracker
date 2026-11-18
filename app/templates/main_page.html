@@ -101,6 +101,43 @@
             fill: currentColor;
         }
 
+        /* Auth buttons container for guest view */
+        .auth-buttons-top {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .auth-btn-top {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-register-top {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+        }
+
+        .btn-register-top:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-login-top {
+            background-color: #eeebe3;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-login-top:hover {
+            background-color: #e3e0db;
+        }
+
         /* Services grid */
         .services-grid {
             display: grid;
@@ -187,6 +224,41 @@
 
         .delete-btn:hover {
             background-color: #fdf2f2;
+        }
+
+        /* Welcome card for unauthenticated users (matching sketch) */
+        .welcome-card-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            padding: 40px 0;
+        }
+
+        .welcome-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 50px 40px;
+            text-align: center;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        .welcome-card h2 {
+            font-size: 2rem;
+            color: #3d3d3d;
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-card p {
+            color: #888;
+            font-size: 1.05rem;
+            margin: 0;
         }
 
         /* Modal window */
@@ -294,24 +366,13 @@
 
     <div class="main-container">
         <!-- Top navigation panel -->
-        <div class="top-nav">
-            <!-- Left: + New button -->
-            <button class="new-btn" onclick="openCreateModal()">+ New</button>
-
-            <!-- Center: App title -->
-            <h1 class="app-title">Release Tracker</h1>
-
-            <!-- Right: Profile icon -->
-            <a href="/profile" class="profile-link" title="Profile">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-            </a>
+        <div class="top-nav" id="topNav">
+            <!-- Динамически заполняется через JS в зависимости от авторизации -->
         </div>
 
-        <!-- Services grid -->
-        <div class="services-grid" id="servicesList">
-            <div class="empty-state">Loading services...</div>
+        <!-- Контентная область (динамическая: либо дашборд сервисов, либо приветственная карточка) -->
+        <div id="contentArea" style="display: flex; flex-direction: column; flex: 1;">
+            <div class="empty-state">Loading...</div>
         </div>
     </div>
 
@@ -341,6 +402,38 @@
         let editingServiceId = null;
         let isAdmin = false;
         let usersList = [];
+        let isAuthenticated = false;
+
+        async function initApp() {
+            try {
+                const response = await fetch(`${API_URL}/services`);
+                
+                if (response.status === 401 || response.status === 302 || response.redirected) {
+                    isAuthenticated = false;
+                    renderGuestView();
+                    return;
+                }
+
+                if (!response.ok) {
+                    // Если запрос вернул ошибку доступа, считаем пользователя неавторизованным
+                    isAuthenticated = false;
+                    renderGuestView();
+                    return;
+                }
+
+                isAuthenticated = true;
+                const services = await response.json();
+                
+                // Проверяем также, является ли пользователь админом
+                await checkAdminStatus();
+                
+                renderDashboardView(services);
+            } catch (e) {
+                console.error('Initialization error:', e);
+                isAuthenticated = false;
+                renderGuestView();
+            }
+        }
 
         async function checkAdminStatus() {
             try {
@@ -349,51 +442,97 @@
                     isAdmin = true;
                     usersList = await response.json();
                     const select = document.getElementById('serviceOwner');
-                    select.innerHTML = '';
-                    usersList.forEach(u => {
-                        select.innerHTML += `<option value="${u.id}">${u.username}</option>`;
-                    });
+                    if (select) {
+                        select.innerHTML = '';
+                        usersList.forEach(u => {
+                            select.innerHTML += `<option value="${u.id}">${u.username}</option>`;
+                        });
+                    }
                 }
             } catch (e) {
                 isAdmin = false;
             }
         }
 
-        async function loadServices() {
+        // Рендер интерфейса для гостя (неавторизованного)
+        function renderGuestView() {
+            // Навигационная панель с кнопками Register и Log in
+            const nav = document.getElementById('topNav');
+            nav.innerHTML = `
+                <button class="new-btn" style="visibility: hidden; pointer-events: none;">+ New</button>
+                <h1 class="app-title">Release Tracker</h1>
+                <div class="auth-buttons-top">
+                    <a href="/register" class="auth-btn-top btn-register-top">Register</a>
+                    <a href="/login" class="auth-btn-top btn-login-top">Log in</a>
+                </div>
+            `;
+
+            // Центральная карточка приветствия (как на эскизе)
+            const content = document.getElementById('contentArea');
+            content.innerHTML = `
+                <div class="welcome-card-container">
+                    <div class="welcome-card">
+                        <h2>Welcome<br>To<br>Release Tracker</h2>
+                        <p>Please log in or register to manage your services and releases.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Рендер дашборда для авторизованного пользователя
+        function renderDashboardView(services) {
+            // Навигационная панель с кнопкой создания и иконкой профиля
+            const nav = document.getElementById('topNav');
+            nav.innerHTML = `
+                <button class="new-btn" onclick="openCreateModal()">+ New</button>
+                <h1 class="app-title">Release Tracker</h1>
+                <a href="/profile" class="profile-link" title="Profile">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                </a>
+            `;
+
+            // Сетка сервисов
+            const content = document.getElementById('contentArea');
+            content.innerHTML = `
+                <div class="services-grid" id="servicesList"></div>
+            `;
+
+            const listElement = document.getElementById('servicesList');
+            if (!services || services.length === 0) {
+                listElement.innerHTML = '<div class="empty-state">No services yet. Click «+ New» to add one.</div>';
+                return;
+            }
+
+            services.forEach(service => {
+                const safeName = service.name.replace(/'/g, "\\'");
+                const safeUrl = (service.repository_url || '').replace(/'/g, "\\'");
+
+                listElement.innerHTML += `
+                    <div class="service-card" onclick="goToReleases(${service.id})">
+                        <div class="service-info">
+                            <strong>${service.name}</strong>
+                            <a href="${service.repository_url}" target="_blank" onclick="event.stopPropagation()">${service.repository_url || ''}</a>
+                        </div>
+                        <div class="card-footer" onclick="event.stopPropagation()">
+                            <button class="change-btn" onclick="openEditModal(${service.id}, '${safeName}', '${safeUrl}')">Change</button>
+                            <button class="delete-btn" onclick="deleteService(${service.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function reloadServicesOnly() {
             try {
                 const response = await fetch(`${API_URL}/services`);
-                if (!response.ok) throw new Error('Failed to load');
-                
-                const services = await response.json();
-                
-                const listElement = document.getElementById('servicesList');
-                listElement.innerHTML = '';
-
-                if (!services || services.length === 0) {
-                    listElement.innerHTML = '<div class="empty-state">No services yet. Click «+ New» to add one.</div>';
-                    return;
+                if (response.ok) {
+                    const services = await response.json();
+                    renderDashboardView(services);
                 }
-
-                services.forEach(service => {
-                    const safeName = service.name.replace(/'/g, "\\'");
-                    const safeUrl = (service.repository_url || '').replace(/'/g, "\\'");
-
-                    listElement.innerHTML += `
-                        <div class="service-card" onclick="goToReleases(${service.id})">
-                            <div class="service-info">
-                                <strong>${service.name}</strong>
-                                <a href="${service.repository_url}" target="_blank" onclick="event.stopPropagation()">${service.repository_url || ''}</a>
-                            </div>
-                            <div class="card-footer" onclick="event.stopPropagation()">
-                                <button class="change-btn" onclick="openEditModal(${service.id}, '${safeName}', '${safeUrl}')">Change</button>
-                                <button class="delete-btn" onclick="deleteService(${service.id})">Delete</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error('Error loading services:', error);
-                document.getElementById('servicesList').innerHTML = '<div class="empty-state" style="color: #d9534f;">Backend connection error</div>';
+            } catch (e) {
+                console.error('Error reloading services:', e);
             }
         }
 
@@ -407,7 +546,6 @@
             document.getElementById('serviceName').value = '';
             document.getElementById('serviceUrl').value = '';
             
-            // Управляем видимостью выбора владельца для админа
             const ownerContainer = document.getElementById('ownerFieldContainer');
             if (isAdmin) {
                 ownerContainer.style.display = 'block';
@@ -428,7 +566,6 @@
             document.getElementById('serviceName').value = name;
             document.getElementById('serviceUrl').value = url;
             
-            // При редактировании выбор владельца скрываем (можно изменить только имя и ссылку)
             document.getElementById('ownerFieldContainer').style.display = 'none';
 
             const submitBtn = document.getElementById('submitBtn');
@@ -473,7 +610,7 @@
 
                 if (response.ok) {
                     closeModal();
-                    loadServices();
+                    reloadServicesOnly();
                 } else {
                     const err = await response.json();
                     alert('Error: ' + (err.error || 'Failed to create service'));
@@ -487,11 +624,15 @@
             if (!editingServiceId) return;
 
             const name = document.getElementById('serviceName').value.trim();
-            const repository_url = document.getElementById('serviceUrl').value.trim();
+            let repository_url = document.getElementById('serviceUrl').value.trim();
 
             if (!name || !repository_url) {
                 alert('Please fill in all fields!');
                 return;
+            }
+
+            if (repository_url && !repository_url.startsWith('http://') && !repository_url.startsWith('https://')) {
+                repository_url = 'https://' + repository_url;
             }
 
             try {
@@ -503,7 +644,7 @@
 
                 if (response.ok) {
                     closeModal();
-                    loadServices();
+                    reloadServicesOnly();
                 } else {
                     const err = await response.json();
                     alert('Error: ' + (err.error || 'Failed to update service'));
@@ -522,7 +663,7 @@
                 });
 
                 if (response.ok) {
-                    loadServices();
+                    reloadServicesOnly();
                 } else {
                     alert('Failed to delete service');
                 }
@@ -531,8 +672,7 @@
             }
         }
 
-        checkAdminStatus();
-        loadServices();
+        initApp();
     </script>
 </body>
 </html>
