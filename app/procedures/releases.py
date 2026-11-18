@@ -24,13 +24,18 @@ def get_releases():
     releases = db.session.execute(release_data).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
-@api_bp.route('/services/<int:service_id>/releases', methods=['GET']) 
+@api_bp.route('/services/<int:service_id>/releases', methods=['GET']) # get releases by service
 @login_required
 def get_releases_by_service(service_id):
     try:
-        service = db.session.execute(
-            db.select(Service).filter_by(id=service_id, user_id=current_user.id)
-        ).scalar_one_or_none()
+        if getattr(current_user, 'is_admin', False):
+            service = db.session.execute(
+                db.select(Service).filter_by(id=service_id)
+            ).scalar_one_or_none()
+        else:
+            service = db.session.execute(
+                db.select(Service).filter_by(id=service_id, user_id=current_user.id)
+            ).scalar_one_or_none()
         
         if not service:
             return jsonify({'error': 'Сервис не найден'}), 404
@@ -39,10 +44,8 @@ def get_releases_by_service(service_id):
         return jsonify(releases), 200
         
     except Exception as e:
-        # Логируем полный стектрейс через встроенный логгер Flask
         current_app.logger.error(traceback.format_exc())
         
-        # Возвращаем точный текст ошибки в JSON, чтобы увидеть его в браузере
         error_msg = f"{type(e).__name__}: {str(e)}"
         return jsonify({'error': error_msg}), 500
 

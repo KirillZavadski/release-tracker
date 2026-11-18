@@ -27,6 +27,8 @@ def create_app():
     Migrate(app, db)
     login_manager.init_app(app)
 
+    login_manager.login_view = 'pages.login_page'
+
     app.register_blueprint(api_bp)
     app.register_blueprint(errors)
     app.register_blueprint(health_bp)

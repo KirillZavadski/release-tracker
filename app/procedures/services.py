@@ -13,7 +13,10 @@ from flask_login import login_required, current_user
 @api_bp.route('/services', methods=['GET'])
 @login_required
 def get_services():
-    services = Service.query.filter_by(user_id=current_user.id).all()
+    if getattr(current_user, 'is_admin', False):
+        services = Service.query.all()
+    else:
+        services = Service.query.filter_by(user_id=current_user.id).all()
     
     return jsonify([service.to_dict() for service in services]), 200
 
