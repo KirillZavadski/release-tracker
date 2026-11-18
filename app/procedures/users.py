@@ -13,3 +13,19 @@ def get_users():
     
     users = User.query.all()
     return jsonify([{'id': u.id, 'username': u.username} for u in users]), 200
+
+@user_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_user(user_id):
+    if not getattr(current_user, 'is_admin', False):
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    if current_user.id == user_id:
+        return jsonify({'error': 'You cannot delete your own admin account'}), 400
+
+    user_to_delete = User.query.get_or_404(user_id)
+    
+    db.session.delete(user_to_delete)
+    db.session.commit()
+    
+    return jsonify({'message': 'User deleted successfully'}), 200
