@@ -36,9 +36,10 @@ def create_app():
     app.register_blueprint(pages_bp)
     app.register_blueprint(user_bp)
 
-    # @app.errorhandler(404)
-    # def page_not_found(e):
-    #     return jsonify(error=str(e)), 404
+    @app.after_request
+    def add_no_cache_headers(response):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        return response
 
     @app.route('/')
     def index():
