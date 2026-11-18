@@ -8,6 +8,7 @@ from app.procedures.api import api_bp
 from app.error_handlers.errors_handling import errors
 from app.health.health_check import health_bp
 from app.procedures.pages import pages_bp
+from app.procedures.users import user_bp
 
 from .extencions import login_manager
 
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(errors)
     app.register_blueprint(health_bp)
     app.register_blueprint(pages_bp)
+    app.register_blueprint(user_bp)
 
     # @app.errorhandler(404)
     # def page_not_found(e):

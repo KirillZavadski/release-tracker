@@ -221,7 +221,7 @@
             margin-bottom: 16px;
         }
 
-        .modal input {
+        .modal input, .modal select {
             width: 100%;
             padding: 10px 14px;
             margin-bottom: 12px;
@@ -231,11 +231,22 @@
             background-color: #faf9f6;
             box-sizing: border-box;
             outline: none;
+            color: var(--text-color);
+            font-family: inherit;
         }
 
-        .modal input:focus {
+        .modal input:focus, .modal select:focus {
             border-color: var(--accent-color);
             background-color: #fff;
+        }
+
+        .modal-field-label {
+            font-size: 0.85rem;
+            color: #888;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .modal-actions {
@@ -308,8 +319,16 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">New Service</h3>
+            
             <input type="text" id="serviceName" placeholder="Service name (e.g. auth)">
             <input type="text" id="serviceUrl" placeholder="Repository URL">
+            
+            <div id="ownerFieldContainer" style="display: none;">
+                <label class="modal-field-label">Owner (User)</label>
+                <select id="serviceOwner">
+                </select>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">Cancel</button>
                 <button class="btn-submit" id="submitBtn">Create</button>
@@ -320,6 +339,25 @@
     <script>
         const API_URL = '/api';
         let editingServiceId = null;
+        let isAdmin = false;
+        let usersList = [];
+
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch(`/users`);
+                if (response.ok) {
+                    isAdmin = true;
+                    usersList = await response.json();
+                    const select = document.getElementById('serviceOwner');
+                    select.innerHTML = '';
+                    usersList.forEach(u => {
+                        select.innerHTML += `<option value="${u.id}">${u.username}</option>`;
+                    });
+                }
+            } catch (e) {
+                isAdmin = false;
+            }
+        }
 
         async function loadServices() {
             try {
@@ -369,7 +407,14 @@
             document.getElementById('serviceName').value = '';
             document.getElementById('serviceUrl').value = '';
             
-            // Назначаем отдельный метод для POST (создание)
+            // Управляем видимостью выбора владельца для админа
+            const ownerContainer = document.getElementById('ownerFieldContainer');
+            if (isAdmin) {
+                ownerContainer.style.display = 'block';
+            } else {
+                ownerContainer.style.display = 'none';
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerText = 'Create';
             submitBtn.onclick = createService;
@@ -383,7 +428,9 @@
             document.getElementById('serviceName').value = name;
             document.getElementById('serviceUrl').value = url;
             
-            // Назначаем отдельный метод для PUT (обновление)
+            // При редактировании выбор владельца скрываем (можно изменить только имя и ссылку)
+            document.getElementById('ownerFieldContainer').style.display = 'none';
+
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerText = 'Save';
             submitBtn.onclick = updateService;
@@ -398,21 +445,30 @@
             editingServiceId = null;
         }
 
-        // Отдельная функция для POST-запроса (создание сервиса)
         async function createService() {
             const name = document.getElementById('serviceName').value.trim();
-            const repository_url = document.getElementById('serviceUrl').value.trim();
+            let repository_url = document.getElementById('serviceUrl').value.trim();
 
             if (!name || !repository_url) {
                 alert('Please fill in all fields!');
                 return;
             }
 
+            if (repository_url && !repository_url.startsWith('http://') && !repository_url.startsWith('https://')) {
+                repository_url = 'https://' + repository_url;
+            }
+
+            const payload = { name, repository_url };
+
+            if (isAdmin) {
+                payload.user_id = parseInt(document.getElementById('serviceOwner').value);
+            }
+
             try {
                 const response = await fetch(`${API_URL}/services`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, repository_url })
+                    body: JSON.stringify(payload)
                 });
 
                 if (response.ok) {
@@ -475,7 +531,7 @@
             }
         }
 
-        // Load services when opening the page
+        checkAdminStatus();
         loadServices();
     </script>
 </body>

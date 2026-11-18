@@ -29,26 +29,24 @@ def get_service_by_release(release_id):
 @login_required
 def create_service():
     data = request.get_json() or {}
+    name = data.get('name')
+    repository_url = data.get('repository_url')
     
-    if 'name' not in data:
-        return jsonify({'error': 'Поле name обязательно для заполнения'}), 400
-        
-    existing_service = db.session.execute(
-        db.select(Service).filter_by(name=data['name'], user_id=current_user.id)
-    ).scalar_one_or_none()
-    
-    if existing_service:
-        return jsonify({'error': 'У вас уже есть сервис с таким именем'}), 400
+    if not name or not repository_url:
+        return jsonify({'error': 'Name and repository_url are required'}), 400
+
+    target_user_id = current_user.id
+    if getattr(current_user, 'is_admin', False) and 'user_id' in data:
+        target_user_id = data['user_id']
 
     new_service = Service(
-        name=data['name'],
-        repository_url=data.get('repository_url'),
-        user_id=current_user.id
+        name=name,
+        repository_url=repository_url,
+        user_id=target_user_id
     )
-    
     db.session.add(new_service)
     db.session.commit()
-    
+
     return jsonify(new_service.to_dict()), 201
 
 @api_bp.route('/services/<int:service_id>', methods=['PUT', 'PATCH'])
