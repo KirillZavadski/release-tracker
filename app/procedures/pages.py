@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import User
+from app.models.models import Service
 from app import db
 
 pages_bp = Blueprint('pages', __name__)

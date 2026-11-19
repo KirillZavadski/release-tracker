@@ -152,7 +152,6 @@
         <h1>Release Tracker</h1>
 
         <div class="card">
-            <!-- Указан правильный путь /register и метод POST -->
             <form id="registerForm" action="/register" method="POST">
                 <div class="input-group">
                     <input type="text" name="username" id="username" placeholder="New Login" required autocomplete="username">
@@ -168,7 +167,6 @@
                     </label>
                 </div>
 
-                <!-- Вывод сообщений об ошибках из Flask (flash) -->
                 {% with messages = get_flashed_messages() %}
                     {% if messages %}
                         <div class="error-msg" style="margin-top: 14px;">{{ messages[0] }}</div>

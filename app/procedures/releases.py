@@ -26,6 +26,7 @@ def get_releases():
 
 @api_bp.route('/services/<int:service_id>/releases', methods=['GET']) # get releases by service
 @login_required
+
 def get_releases_by_service(service_id):
     try:
         if getattr(current_user, 'is_admin', False):
