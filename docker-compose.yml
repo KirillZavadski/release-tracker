@@ -26,6 +26,8 @@ services:
       - db
     volumes:
       - .:/app
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
 volumes:
   pgdata:
