@@ -52,7 +52,7 @@ def register_page():
 @pages_bp.route('/services/<int:service_id>/releases')
 @login_required
 def releases_page(service_id):
-    return render_template('releases.html', service_id=service_id)
+    return render_template('releases.html', service_id=service_id, is_admin=bool(getattr(current_user, 'is_admin', False)))
 
 @pages_bp.route('/profile')
 @login_required

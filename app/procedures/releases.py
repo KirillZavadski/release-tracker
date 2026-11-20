@@ -4,6 +4,7 @@ from app.models.enums import Status_variable as statuses
 from app.procedures.api import api_bp
 from flask_login import login_required, current_user
 import traceback
+from datetime import datetime
 
 
 # api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -24,9 +25,39 @@ def get_releases():
     releases = db.session.execute(release_data).scalars().all()
     return jsonify([release.to_dict() for release in releases]), 200
 
+
+@api_bp.route('/releases', methods=['POST'])
+@login_required
+def create_release():
+    data = request.get_json() or {}
+
+    if 'service_id' not in data or 'version' not in data:
+        return jsonify({'error': 'Поля service_id и version обязательны'}), 400
+
+    version = str(data['version']).strip()
+    if not version:
+        return jsonify({'error': 'Поле version не может быть пустым'}), 400
+
+    service = db.session.get(Service, data['service_id'])
+    if service is None:
+        return jsonify({'error': 'Сервис с таким service_id не найден'}), 404
+
+    new_release = Release(
+        service_id=service.id,
+        version=version,
+        changelog=data.get('changelog'),
+        status=statuses.DRAFT,
+        deadline=None
+    )
+
+    db.session.add(new_release)
+    db.session.commit()
+
+    return jsonify(new_release.to_dict()), 201
+
+
 @api_bp.route('/services/<int:service_id>/releases', methods=['GET']) # get releases by service
 @login_required
-
 def get_releases_by_service(service_id):
     try:
         if getattr(current_user, 'is_admin', False):
@@ -49,56 +80,75 @@ def get_releases_by_service(service_id):
         
         error_msg = f"{type(e).__name__}: {str(e)}"
         return jsonify({'error': error_msg}), 500
-
-@api_bp.route('/releases', methods=['POST'])
-def create_release():
-    data = request.get_json() or {}
     
-    if 'service_id' not in data or 'version' not in data:
-        return jsonify({'error': 'Поля service_id и version обязательны'}), 400
-        
-    valid_statuses = [status.value for status in statuses]
 
-    service = db.session.get(Service, data['service_id'])
-    if service is None:
-        return jsonify({'error': 'Сервис с таким service_id не найден'}), 404
+def parse_deadline(raw_deadline) -> datetime | None: # chenge date format
+    if not raw_deadline or not isinstance(raw_deadline, str):
+        return None
 
-    new_release = Release(
-        service_id=data['service_id'],
-        version=data['version'],
-        changelog=data.get('changelog'),
-        status=data.get('status').upper()
+    cleaned = raw_deadline.strip()
+    formats = (
+        '%d.%m.%Y %H:%M',   
+        '%d.%m.%Y %H:%M:%S',
+        '%Y-%m-%dT%H:%M',  
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%dT%H:%M:%S',
     )
-    
-    db.session.add(new_release)
-    db.session.commit()
-    
-    return jsonify(new_release.to_dict()), 201
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned, fmt)
+        except ValueError:
+            continue
+    return None
 
 @api_bp.route('/releases/<int:release_id>/status', methods=['PATCH'])
+@login_required
 def update_release_status(release_id):
+    if not getattr(current_user, 'is_admin', False):
+        return jsonify({'error': 'Переводить релизы в другие статусы может только администратор'}), 403
+
     release = db.get_or_404(Release, release_id)
     data = request.get_json() or {}
-    
-    new_status = data.get('status')
-    if not new_status:
+
+    raw_status = data.get('status')
+    if not raw_status:
         return jsonify({'error': 'Статус не указан'}), 400
-        
-    new_status_upper = str(new_status).upper()
-    
-    valid_statuses = ['DRAFT', 'TESTING', 'DEPLOYED']
 
-    if new_status_upper not in valid_statuses:
-        return jsonify({'error': f'Недопустимый статус. Разрешены: {valid_statuses}'}), 400
+    cleaned_status = str(raw_status).strip()
 
-    current_status = str(release.status).upper()
-    if 'DRAFT' in current_status and new_status_upper == 'DEPLOYED':
+    target_status = next(
+        (s for s in statuses if s.value == cleaned_status or s.value.upper() == cleaned_status.upper()),
+        None
+    )
+
+    if target_status is None:
+        allowed = [s.value for s in statuses]
+        return jsonify({'error': f'Недопустимый статус. Разрешены: {allowed}'}), 400
+
+    current_status = (
+        release.status
+        if isinstance(release.status, statuses)
+        else next((s for s in statuses if s.value.upper() == str(release.status).upper()), None)
+    )
+
+    if current_status == statuses.DRAFT and target_status == statuses.DEPLOYED:
         return jsonify({'error': 'Нельзя перевести релиз из draft прямо в deployed, сначала пройдите testing'}), 400
 
-    release.status = new_status_upper
+    if target_status == statuses.TESTING:
+        parsed_deadline = parse_deadline(data.get('deadline'))
+        if parsed_deadline is None:
+            return jsonify({
+                'error': 'При переводе в тестовый статус обязательно укажите дедлайн (дата и время, например ДД.ММ.ГГГГ ЧЧ:ММ)'
+            }), 400
+        release.deadline = parsed_deadline
+    else:
+        release.deadline = None
+
+    release.status = target_status
     db.session.commit()
-    
+
     return jsonify(release.to_dict()), 200
+
 
 @api_bp.route('/releases/<int:release_id>', methods=['DELETE'])
 def delete_release(release_id):

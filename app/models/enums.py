@@ -1,7 +1,7 @@
 from enum import Enum
 
-class Status_variable(Enum):
+class Status_variable(str, Enum):
     DRAFT = "Draft"
     TESTING = "Testing"
     DEPLOYED = "Deployed"
-    DEPRECATED = "DEPRECATED"
+    DEPRECATED = "Deprecated"

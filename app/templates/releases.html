@@ -47,7 +47,7 @@
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            margin-bottom: 24px;
+            margin-bottom: 18px;
         }
 
         /* Back button */
@@ -94,6 +94,19 @@
             background-color: var(--accent-hover);
         }
 
+        /* Deadline alert banner */
+        .deadline-alert {
+            display: none;
+            background-color: #fff4e5;
+            border: 1px solid #f0ad4e;
+            color: #7c4a03;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
         /* Releases list container */
         .releases-list {
             display: flex;
@@ -112,6 +125,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 16px;
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
@@ -132,6 +146,16 @@
             color: #666;
         }
 
+        .release-deadline {
+            font-size: 0.88rem !important;
+            color: #555 !important;
+        }
+
+        .release-deadline.reached {
+            color: #a15200 !important;
+            font-weight: 600;
+        }
+
         .release-time {
             font-size: 0.8rem !important;
             color: #999 !important;
@@ -147,10 +171,26 @@
             color: var(--accent-hover);
         }
 
+        .status-badge.status-testing {
+            background-color: #fff4e5;
+            color: #9c5700;
+        }
+
+        .status-badge.status-deployed {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-badge.status-deprecated {
+            background-color: #f1f1f1;
+            color: #666666;
+        }
+
         .card-footer {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .status-btn {
@@ -196,6 +236,7 @@
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(2px);
+            z-index: 1000;
         }
 
         .modal {
@@ -203,7 +244,7 @@
             padding: 24px;
             border-radius: 16px;
             width: 100%;
-            max-width: 360px;
+            max-width: 380px;
             border: 1px solid var(--border-color);
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             box-sizing: border-box;
@@ -216,7 +257,15 @@
             margin-bottom: 16px;
         }
 
-        .modal input {
+        .field-label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .modal input,
+        .modal select {
             width: 100%;
             padding: 10px 14px;
             margin-bottom: 12px;
@@ -224,13 +273,20 @@
             border-radius: 8px;
             font-size: 0.95rem;
             background-color: #faf9f6;
+            color: var(--text-color);
             box-sizing: border-box;
             outline: none;
         }
 
-        .modal input:focus {
+        .modal input:focus,
+        .modal select:focus {
             border-color: var(--accent-color);
             background-color: #fff;
+        }
+
+        .deadline-group {
+            display: none;
+            margin-bottom: 4px;
         }
 
         .modal-actions {
@@ -286,6 +342,9 @@
             <button class="new-btn" onclick="openCreateModal()">+ New Release</button>
         </div>
 
+        <!-- Deadline warning banner -->
+        <div class="deadline-alert" id="deadlineAlert"></div>
+
         <!-- Releases list -->
         <div class="releases-list" id="releasesList">
             <div class="empty-state">Loading releases...</div>
@@ -296,8 +355,8 @@
     <div class="modal-overlay" id="createModalOverlay">
         <div class="modal">
             <h3>New Release</h3>
+            <label class="field-label" for="releaseVersion">Version</label>
             <input type="text" id="releaseVersion" placeholder="Version (e.g. v1.0.0)">
-            <input type="text" id="releaseStatus" placeholder="Status">
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeCreateModal()">Cancel</button>
                 <button class="btn-submit" onclick="createRelease()">Create</button>
@@ -309,7 +368,19 @@
     <div class="modal-overlay" id="statusModalOverlay">
         <div class="modal">
             <h3>Change Status</h3>
-            <input type="text" id="newStatusInput" placeholder="New status">
+            <label class="field-label" for="newStatusSelect">Status</label>
+            <select id="newStatusSelect" onchange="toggleDeadlineField()">
+                <option value="DRAFT">DRAFT</option>
+                <option value="TESTING">TESTING</option>
+                <option value="DEPLOYED">DEPLOYED</option>
+                <option value="DEPRECATED">DEPRECATED</option>
+            </select>
+
+            <div class="deadline-group" id="deadlineGroup">
+                <label class="field-label" for="deadlineInput">Deadline (date and time)</label>
+                <input type="datetime-local" id="deadlineInput">
+            </div>
+
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeStatusModal()">Cancel</button>
                 <button class="btn-submit" onclick="saveNewStatus()">Save</button>
@@ -320,34 +391,109 @@
     <script>
         const API_URL = '/api';
         const SERVICE_ID = {{ service_id }};
+        const IS_ADMIN = {{ 'true' if is_admin|default(false) else 'false' }};
+
         let currentEditingReleaseId = null;
+        let releasesCache = [];
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function isDeadlineReached(release) {
+            const status = String(release.status || '').toUpperCase();
+            if (status !== 'TESTING') return false;
+
+            if (typeof release.deadline_reached === 'boolean') {
+                return release.deadline_reached;
+            }
+            if (!release.deadline_iso) return false;
+
+            const deadlineDate = new Date(release.deadline_iso);
+            return !Number.isNaN(deadlineDate.getTime()) && new Date() >= deadlineDate;
+        }
+
+        function renderDeadlineBanner(releases) {
+            const alertEl = document.getElementById('deadlineAlert');
+            const reachedList = releases.filter(isDeadlineReached);
+
+            if (reachedList.length === 0) {
+                alertEl.style.display = 'none';
+                alertEl.textContent = '';
+                return;
+            }
+
+            const itemsText = reachedList
+                .map(r => `${r.version || 'Unknown'}${r.deadline ? ` (${r.deadline})` : ''}`)
+                .join(', ');
+
+            alertEl.textContent = `Внимание: подошёл дедлайн тестирования по релизу(-ам) сервиса: ${itemsText}.`;
+            alertEl.style.display = 'block';
+        }
+
+        function formatDateTimeRu(dateObj) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${pad(dateObj.getDate())}.${pad(dateObj.getMonth() + 1)}.${dateObj.getFullYear()} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+        }
+
+        function datetimeLocalToRuString(localValue) {
+            if (!localValue) return '';
+            const [datePart, timePart] = localValue.split('T');
+            if (!datePart || !timePart) return localValue;
+            const [year, month, day] = datePart.split('-');
+            const timeClean = timePart.slice(0, 5);
+            return `${day}.${month}.${year} ${timeClean}`;
+        }
 
         async function loadReleases() {
             try {
                 const response = await fetch(`${API_URL}/services/${SERVICE_ID}/releases`);
                 const releases = await response.json();
-                
+                releasesCache = Array.isArray(releases) ? releases : [];
+
+                renderDeadlineBanner(releasesCache);
+
                 const listElement = document.getElementById('releasesList');
                 listElement.innerHTML = '';
 
-                if (!releases || releases.length === 0) {
+                if (releasesCache.length === 0) {
                     listElement.innerHTML = '<div class="empty-state">No releases yet for this service. Click «+ New Release» to add one.</div>';
                     return;
                 }
 
-                releases.forEach(release => {
-                    const safeStatus = (release.status || 'Pending').replace(/'/g, "\\'");
-                    const formattedDate = release.created_at ? new Date(release.created_at).toLocaleString() : 'N/A';
+                releasesCache.forEach(release => {
+                    const statusUpper = String(release.status || 'DRAFT').toUpperCase();
+                    const statusCssClass = `status-${statusUpper.toLowerCase()}`;
+                    const reached = isDeadlineReached(release);
+
+                    const formattedCreated = release.created_at
+                        ? new Date(release.created_at).toLocaleString()
+                        : 'N/A';
+
+                    let deadlineHtml = '';
+                    if (statusUpper === 'TESTING' && release.deadline) {
+                        deadlineHtml = `<p class="release-deadline ${reached ? 'reached' : ''}">Deadline: ${escapeHtml(release.deadline)}${reached ? ' — дедлайн наступил' : ''}</p>`;
+                    }
+
+                    const statusActionHtml = IS_ADMIN
+                        ? `<button class="status-btn" onclick="openStatusModal(${release.id})">Change Status</button>`
+                        : '';
 
                     listElement.innerHTML += `
                         <div class="release-card">
                             <div class="release-info">
-                                <h4>Version: ${release.version || 'Unknown'}</h4>
-                                <p>Status: <span class="status-badge">${release.status || 'Pending'}</span></p>
-                                <p class="release-time">Created: ${formattedDate}</p>
+                                <h4>Version: ${escapeHtml(release.version || 'Unknown')}</h4>
+                                <p>Status: <span class="status-badge ${statusCssClass}">${escapeHtml(statusUpper)}</span></p>
+                                ${deadlineHtml}
+                                <p class="release-time">Created: ${escapeHtml(formattedCreated)}</p>
                             </div>
                             <div class="card-footer">
-                                <button class="status-btn" onclick="openStatusModal(${release.id}, '${safeStatus}')">Change Status</button>
+                                ${statusActionHtml}
                                 <button class="delete-btn" onclick="deleteRelease(${release.id})">Delete</button>
                             </div>
                         </div>
@@ -366,41 +512,71 @@
         function closeCreateModal() {
             document.getElementById('createModalOverlay').style.display = 'none';
             document.getElementById('releaseVersion').value = '';
-            document.getElementById('releaseStatus').value = '';
         }
 
-        function openStatusModal(releaseId, currentStatus) {
+        function toggleDeadlineField() {
+            const selectedStatus = document.getElementById('newStatusSelect').value;
+            const deadlineGroup = document.getElementById('deadlineGroup');
+            const deadlineInput = document.getElementById('deadlineInput');
+
+            if (selectedStatus === 'TESTING') {
+                deadlineGroup.style.display = 'block';
+                deadlineInput.required = true;
+            } else {
+                deadlineGroup.style.display = 'none';
+                deadlineInput.required = false;
+                deadlineInput.value = '';
+            }
+        }
+
+        function openStatusModal(releaseId) {
+            if (!IS_ADMIN) {
+                alert('Только администратор может менять статус релиза.');
+                return;
+            }
+
+            const release = releasesCache.find(r => r.id === releaseId);
+            if (!release) return;
+
             currentEditingReleaseId = releaseId;
-            document.getElementById('newStatusInput').value = currentStatus;
+            const currentStatus = String(release.status || 'DRAFT').toUpperCase();
+            const selectEl = document.getElementById('newStatusSelect');
+            const deadlineInput = document.getElementById('deadlineInput');
+
+            selectEl.value = ['DRAFT', 'TESTING', 'DEPLOYED', 'DEPRECATED'].includes(currentStatus)
+                ? currentStatus
+                : 'DRAFT';
+
+            deadlineInput.value = release.deadline_iso ? release.deadline_iso.slice(0, 16) : '';
+            toggleDeadlineField();
+
             document.getElementById('statusModalOverlay').style.display = 'flex';
         }
 
         function closeStatusModal() {
             document.getElementById('statusModalOverlay').style.display = 'none';
             currentEditingReleaseId = null;
-            document.getElementById('newStatusInput').value = '';
+            document.getElementById('deadlineInput').value = '';
         }
 
         async function createRelease() {
             const version = document.getElementById('releaseVersion').value.trim();
-            const status = document.getElementById('releaseStatus').value.trim() || 'Pending';
 
             if (!version) {
                 alert('Please enter a version!');
                 return;
             }
 
-            const data = {
+            const payload = {
                 service_id: SERVICE_ID,
-                version,
-                status
-            }
+                version
+            };
 
             try {
                 const response = await fetch(`${API_URL}/releases`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
 
                 if (response.ok) {
@@ -416,14 +592,33 @@
         }
 
         async function saveNewStatus() {
-            const status = document.getElementById('newStatusInput').value.trim();
+            if (!IS_ADMIN) {
+                alert('Только администратор может менять статус релиза.');
+                return;
+            }
+
+            const status = document.getElementById('newStatusSelect').value;
+            const localDeadline = document.getElementById('deadlineInput').value;
+
             if (!status || !currentEditingReleaseId) return;
+
+            const payload = { status };
+
+            if (status === 'TESTING') {
+                if (!localDeadline) {
+                    alert('Для перевода в тестовый статус обязательно укажите дату и время дедлайна.');
+                    return;
+                }
+                payload.deadline = datetimeLocalToRuString(localDeadline);
+            } else {
+                payload.deadline = null;
+            }
 
             try {
                 const response = await fetch(`${API_URL}/releases/${currentEditingReleaseId}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
+                    body: JSON.stringify(payload)
                 });
 
                 if (response.ok) {
@@ -456,7 +651,6 @@
             }
         }
 
-        // Load releases on page open
         loadReleases();
     </script>
 </body>
