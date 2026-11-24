@@ -160,12 +160,6 @@
                 <div class="input-group" style="margin-top: 14px;">
                     <input type="password" name="password" id="password" placeholder="Pass (min: 6 symbols)" required minlength="6" autocomplete="new-password">
                 </div>
-                
-                <div style="margin-top: 12px;">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="rememberMe"> Remember me
-                    </label>
-                </div>
 
                 {% with messages = get_flashed_messages() %}
                     {% if messages %}
